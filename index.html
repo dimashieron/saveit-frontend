@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaveIt — Video Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0d0f;
+      --surface: #17171a;
+      --surface2: #1f1f24;
+      --border: #2a2a30;
+      --accent: #7c6bff;
+      --accent2: #a78bfa;
+      --accent-glow: rgba(124, 107, 255, 0.25);
+      --text: #f0f0f5;
+      --muted: #888899;
+      --success: #34d399;
+      --error: #f87171;
+      --yt: #ff4040;
+      --tk: #ff0050;
+      --ig: #c13584;
+      --fb: #1877f2;
+      --tw: #1d9bf0;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── GLOW BG ── */
+    .glow-bg {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(124,107,255,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      padding: 48px 24px 0;
+      text-align: center;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon svg { width: 22px; height: 22px; }
+
+    .logo-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fff 40%, var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      margin-bottom: 36px;
+      line-height: 1.6;
+    }
+
+    /* ── PLATFORM CHIPS ── */
+    .platforms {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 36px;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      letter-spacing: 0.2px;
+    }
+
+    .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ── MAIN CARD ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      padding: 0 24px;
+    }
+
+    .input-wrap {
+      display: flex;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 6px 6px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .input-wrap input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+      min-width: 0;
+    }
+
+    .input-wrap input::placeholder { color: var(--muted); }
+
+    .btn-fetch {
+      background: linear-gradient(135deg, var(--accent), #9d8df5);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 22px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-fetch:hover { opacity: 0.9; }
+    .btn-fetch:active { transform: scale(0.97); }
+    .btn-fetch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── STATUS ── */
+    .status {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--muted);
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .status.error { color: var(--error); }
+    .status.loading { color: var(--accent2); }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULT ── */
+    #result {
+      margin-top: 28px;
+      display: none;
+    }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .result-preview {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #111;
+      overflow: hidden;
+    }
+
+    .result-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .platform-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .duration-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .result-info {
+      padding: 20px;
+    }
+
+    .result-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      /* clamp to 2 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .result-meta {
+      display: flex;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .result-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* ── FORMAT GRID ── */
+    .formats-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .formats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    .format-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      text-decoration: none;
+      display: block;
+    }
+
+    .format-btn:hover {
+      border-color: var(--accent);
+      background: rgba(124,107,255,0.07);
+    }
+    .format-btn:active { transform: scale(0.97); }
+
+    .fmt-quality {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .fmt-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .fmt-dl-icon {
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: var(--accent2);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── NO AUDIO WARNING ── */
+    .no-audio-note {
+      margin-top: 12px;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: #fca5a5;
+      display: none;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      padding: 48px 24px 0;
+    }
+
+    .how-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+
+    .step-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      opacity: 0.5;
+      margin-bottom: 8px;
+    }
+
+    .step-text {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+
+    /* ── MOBILE ── */
+    @media (max-width: 500px) {
+      h1 { font-size: 1.8rem; }
+      .input-wrap { flex-direction: column; gap: 8px; padding: 10px; }
+      .btn-fetch { width: 100%; text-align: center; }
+      .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-bg"></div>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v6m0 0l-3-3m3 3l3-3M12 3a4 4 0 014 4H8a4 4 0 014-4z"/>
+        </svg>
+      </div>
+      <span class="logo-text">SaveIt</span>
+    </div>
+
+    <h1>Download video dari mana saja</h1>
+    <p class="subtitle">Paste link dari YouTube, TikTok, Instagram, Facebook, atau Twitter — langsung download tanpa watermark.</p>
+
+    <div class="platforms">
+      <span class="chip"><span class="chip-dot" style="background:var(--yt)"></span>YouTube Shorts</span>
+      <span class="chip"><span class="chip-dot" style="background:var(--tk)"></span>TikTok (no watermark)</span>
+      <span class="chip"><span class="chip-dot" style="background:var(--ig)"></span>Instagram</span>
+      <span class="chip"><span class="chip-dot" style="background:var(--fb)"></span>Facebook</span>
+      <span class="chip"><span class="chip-dot" style="background:var(--tw)"></span>Twitter / X</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="input-wrap">
+      <input
+        type="url"
+        id="urlInput"
+        placeholder="Paste link video di sini..."
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <button class="btn-fetch" id="fetchBtn" onclick="fetchVideo()">
+        Ambil Video
+      </button>
+    </div>
+    <div class="status" id="status"></div>
+
+    <div id="result">
+      <div class="result-card">
+        <div class="result-preview">
+          <img id="thumbnail" src="" alt="Thumbnail" />
+          <span class="platform-badge" id="platformBadge"></span>
+          <span class="duration-badge" id="durationBadge" style="display:none"></span>
+        </div>
+        <div class="result-info">
+          <div class="result-title" id="videoTitle"></div>
+          <div class="result-meta" id="videoMeta"></div>
+          <div class="formats-label">Pilih kualitas & download</div>
+          <div class="formats-grid" id="formatsGrid"></div>
+          <div class="no-audio-note" id="noAudioNote">
+            ⚠️ Beberapa format mungkin tidak memiliki audio. Pilih format <strong>dengan audio</strong> untuk hasil terbaik.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="how">
+    <div class="how-title">Cara pakai</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-text">Copy link video dari platform manapun</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-text">Paste di kotak di atas, klik <strong>Ambil Video</strong></div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-text">Pilih kualitas yang kamu mau, langsung download</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Hanya untuk penggunaan pribadi. Hormati hak cipta konten kreator.</p>
+    <p style="margin-top:4px;opacity:0.5;">Built with yt-dlp · Open Source</p>
+  </footer>
+
+  <script>
+    // ── CONFIG ──
+    // Ganti dengan URL backend Vercel kamu setelah deploy!
+    const BACKEND_URL = 'https://saveit-backend.vercel.app';
+
+    // ── PLATFORM STYLES ──
+    const PLATFORM_STYLES = {
+      youtube:   { label: 'YouTube',   bg: '#ff4040' },
+      tiktok:    { label: 'TikTok',    bg: '#ff0050' },
+      instagram: { label: 'Instagram', bg: '#c13584' },
+      facebook:  { label: 'Facebook',  bg: '#1877f2' },
+      twitter:   { label: 'Twitter/X', bg: '#1d9bf0' },
+      unknown:   { label: 'Video',     bg: '#7c6bff' },
+    };
+
+    // ── HELPERS ──
+    function formatDuration(sec) {
+      if (!sec) return null;
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      return h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${m}:${String(s).padStart(2,'0')}`;
+    }
+
+    function formatViews(n) {
+      if (!n) return null;
+      if (n >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M views`;
+      if (n >= 1_000) return `${(n/1_000).toFixed(0)}K views`;
+      return `${n} views`;
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return null;
+      if (bytes >= 1024*1024) return `${(bytes/1024/1024).toFixed(0)} MB`;
+      if (bytes >= 1024) return `${(bytes/1024).toFixed(0)} KB`;
+      return `${bytes} B`;
+    }
+
+    function setStatus(msg, type='') {
+      const el = document.getElementById('status');
+      el.className = 'status ' + type;
+      if (type === 'loading') {
+        el.innerHTML = `<div class="spinner"></div> ${msg}`;
+      } else {
+        el.textContent = msg;
+      }
+    }
+
+    // ── FETCH VIDEO ──
+    async function fetchVideo() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) { setStatus('Masukkan link video dulu ya!', 'error'); return; }
+
+      const btn = document.getElementById('fetchBtn');
+      btn.disabled = true;
+      document.getElementById('result').style.display = 'none';
+      setStatus('Mengambil info video...', 'loading');
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/info`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Gagal ambil video');
+
+        renderResult(json.data);
+        setStatus('');
+      } catch (err) {
+        setStatus('❌ ' + (err.message || 'Terjadi error, coba lagi'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── RENDER RESULT ──
+    function renderResult(data) {
+      const platform = data.platform || 'unknown';
+      const style = PLATFORM_STYLES[platform] || PLATFORM_STYLES.unknown;
+
+      // Thumbnail
+      const thumb = document.getElementById('thumbnail');
+      thumb.src = data.thumbnail || '';
+      thumb.onerror = () => { thumb.style.display = 'none'; };
+
+      // Badge
+      const badge = document.getElementById('platformBadge');
+      badge.textContent = style.label;
+      badge.style.background = style.bg;
+
+      // Duration
+      const dur = formatDuration(data.duration);
+      const durBadge = document.getElementById('durationBadge');
+      if (dur) {
+        durBadge.textContent = dur;
+        durBadge.style.display = '';
+      } else {
+        durBadge.style.display = 'none';
+      }
+
+      // Title
+      document.getElementById('videoTitle').textContent = data.title || 'Video';
+
+      // Meta
+      const meta = document.getElementById('videoMeta');
+      meta.innerHTML = '';
+      if (data.uploader) {
+        meta.innerHTML += `<span>👤 ${data.uploader}</span>`;
+      }
+      const views = formatViews(data.view_count);
+      if (views) {
+        meta.innerHTML += `<span>👁 ${views}</span>`;
+      }
+
+      // Formats
+      const grid = document.getElementById('formatsGrid');
+      grid.innerHTML = '';
+      let hasNoAudio = false;
+
+      if (!data.formats || data.formats.length === 0) {
+        grid.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">Tidak ada format yang tersedia.</p>';
+      } else {
+        data.formats.forEach(fmt => {
+          const size = formatSize(fmt.filesize);
+          if (!fmt.has_audio) hasNoAudio = true;
+
+          const a = document.createElement('a');
+          a.className = 'format-btn';
+          a.href = fmt.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          // Force download hint (works for same-origin; for CDN URLs opens in new tab)
+          a.download = '';
+
+          a.innerHTML = `
+            <div class="fmt-quality">${fmt.quality}</div>
+            <div class="fmt-meta">
+              ${fmt.ext.toUpperCase()}
+              ${!fmt.has_audio ? '· <span style="color:var(--error)">no audio</span>' : ''}
+            </div>
+            ${size ? `<div class="fmt-meta" style="margin-top:2px">${size}</div>` : ''}
+            <div class="fmt-dl-icon">
+              ↓ Download
+            </div>
+          `;
+          grid.appendChild(a);
+        });
+      }
+
+      // No audio note
+      const note = document.getElementById('noAudioNote');
+      note.style.display = hasNoAudio ? 'block' : 'none';
+
+      // Show result
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ── ENTER KEY ──
+    document.getElementById('urlInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') fetchVideo();
+    });
+
+    // ── PASTE AUTO-FETCH ──
+    document.getElementById('urlInput').addEventListener('paste', () => {
+      setTimeout(() => {
+        const val = document.getElementById('urlInput').value.trim();
+        if (val.startsWith('http')) fetchVideo();
+      }, 100);
+    });
+  </script>
+</body>
+</html>
